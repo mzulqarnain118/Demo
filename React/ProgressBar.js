@@ -78,6 +78,3 @@ const ProgressBar = () => {
 }
 
 export default ProgressBar;
-
-//                    <ProgressBar />
-

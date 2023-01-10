@@ -1,7 +1,8 @@
 import React from 'react'
 import Chart from "react-apexcharts";
+import moment from "moment";
 
-function AnalyticalChart({total,yAxisLabelFormat,width,xAxisTitle,yAxisTitle,chartTitle,alignTitle,chart_data,max,min,tickAmount, chart_type, color_list, chart_category, chart_labels, chart_height, chart_direction,xAxisdoubleLabels,stacked}) {
+function AnalyticalChart({total,yAxisLabelFormat,xAxisLabelDateFormat,yAxisLabelFloat,width,xAxisTitle,yAxisTitle,chartTitle,alignTitle,chart_data,max,min,tickAmount, chart_type, color_list, chart_category, chart_labels, chart_height, chart_direction,xAxisdoubleLabels,stacked}) {
     console.log(`================================AnalyticalChart===============${chart_data[0]?.name}=================================`,chart_category,chart_data);
     let series = chart_data
     let options = {
@@ -132,7 +133,10 @@ function AnalyticalChart({total,yAxisLabelFormat,width,xAxisTitle,yAxisTitle,cha
         dataLabels: {
             enabled: (chart_type === "bar" || chart_type === "pie") ? false : false,
         },
-        stroke: {
+      stroke: {
+          curve: "smooth",
+          width: [2, 2, 2],
+          dashArray: [0, 0, 5],
             lineCap: (chart_type === "radialBar") ? "round" : (chart_type === "area") ? "straight" : undefined
         },
 
@@ -185,7 +189,8 @@ function AnalyticalChart({total,yAxisLabelFormat,width,xAxisTitle,yAxisTitle,cha
               
             bar: {
                 dataLabels: {
-                  position: 'bottom',
+                position: 'bottom',
+               
                   total: {
                     enabled: total ?? false,
                     offsetX: 10,
@@ -227,8 +232,9 @@ function AnalyticalChart({total,yAxisLabelFormat,width,xAxisTitle,yAxisTitle,cha
                     fontSize: "10px",
             },
             formatter: (value) => {
-              return   value  ;
-          }
+              return   xAxisLabelDateFormat?moment(value).format('MMMM Do YYYY, h:mm:ss a'):value  ;
+            }
+            
             },
             categories: chart_category,
             title: {
@@ -246,9 +252,9 @@ function AnalyticalChart({total,yAxisLabelFormat,width,xAxisTitle,yAxisTitle,cha
                     // colors: (chart_type === "radialBar") ? undefined : ["#636E72"],
                     fontSize: "10px",
                 },
-                formatter: (yAxisLabelFormat) ? (value) => {
-                    return yAxisLabelFormat + value  ;
-                } :undefined,
+                formatter:  (value) => {
+                    return yAxisLabelFormat ?yAxisLabelFormat + value:yAxisLabelFloat?value.toFixed(2):value  ;
+                } ,
             },
 
             min: min?min:undefined,
@@ -272,3 +278,9 @@ function AnalyticalChart({total,yAxisLabelFormat,width,xAxisTitle,yAxisTitle,cha
 }
 
 export default React.memo(AnalyticalChart);
+//**TODO CALLING WAY*/
+{/* 
+ <AnalyticalChart xAxisTitle="Date" yAxisTitle="Actual + Forecast Value" chartTitle="Deployed Model Forecast" alignTitle="center" chart_data={chartData}
+                    // total,yAxisLabelFormat,xAxisLabelDateFormat,yAxisLabelFloat,width,xAxisTitle,yAxisTitle,chartTitle,alignTitle,chart_data,max,min,tickAmount, chart_type, color_list, chart_category, chart_labels, chart_height, chart_direction,xAxisdoubleLabels,stacked
+                    chart_type="line" chart_category={chart_category} chart_height={700} xAxisdoubleLabels={true} yAxisLabelFloat={true} xAxisLabelDateFormat={true} color_list={["#4154f1", "#ff771d", "#98169E"]} />
+ */}

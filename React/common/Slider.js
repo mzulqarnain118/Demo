@@ -42,3 +42,5 @@ function Slider({ defaultValue, onChange, min, max, value }) {
 }
 
 export default Slider
+
+

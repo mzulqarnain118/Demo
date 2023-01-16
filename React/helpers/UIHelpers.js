@@ -1,5 +1,6 @@
 
 import LoadingOverlay from "react-loading-overlay";
+import {Circles} from 'react-loader-spinner';
 
 export const LoaderButtonSpinner = () => {
   return(<div className="spinner-border text-light" role="status">

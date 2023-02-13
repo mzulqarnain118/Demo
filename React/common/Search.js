@@ -13,7 +13,13 @@ function Search({Data, setFilteredData}) {
       })
     }
   }
-
+  const allCategories = []
+  allCategories.forEach(category => {
+    if (backendCheckedArray.some(backendCategory => backendCategory.id === category.id))
+      category.checked = true
+    else
+      category.checked = false
+  })
   useEffect(() => {
     if (searchInput.length === 0) {
       setFilteredData([])

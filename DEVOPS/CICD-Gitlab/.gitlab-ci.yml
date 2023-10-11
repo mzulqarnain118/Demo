@@ -1,0 +1,13 @@
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  only:
+    - nodejs-branch-name  # Replace with your branch name
+  script:
+    - ssh user@your-ec2-instance-ip 'bash -s' < deploy.sh
+  environment:
+    name: production  # Replace with your environment name
+  tags:
+    - your-runner-tag  # Replace with your runner tag

@@ -1,0 +1,38 @@
+networks:
+  mynetwork:
+    driver: bridge
+
+services:
+  my-app:
+    image: 021792085578.dkr.ecr.eu-north-1.amazonaws.com/my-app:1.5
+    ports:
+      - 3007:3007
+    env_file:
+      - .env  # Use the correct path to your .env file
+    networks:
+      - mynetwork
+  mongodb:
+    image: mongo
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      -mongo-data:/data/db #for mongo:/data/db ,  mysql: var/lib/mysql,  postgres: var/lib/postgresql/data
+    networks:
+      - mynetwork
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - 8080:8081
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+    networks:
+      - mynetwork
+volumes:
+   mongo-data:
+     driver: local

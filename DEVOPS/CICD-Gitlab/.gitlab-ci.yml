@@ -39,7 +39,5 @@ deploy:
     - ssh -o StrictHostKeyChecking=no -o UpdateHostKeys=yes ubuntu@$EC2_IPADDRESS "cd ~/kfarm && npm install"
     # Restart the Node.js application using PM2
     - ssh -o StrictHostKeyChecking=no -o UpdateHostKeys=yes ubuntu@$EC2_IPADDRESS "cd ~/kfarm && pm2 restart index"
-    # View the Node.js application logs using PM2 in the background and exit
-    - ssh -o StrictHostKeyChecking=no -o UpdateHostKeys=yes ubuntu@$EC2_IPADDRESS "cd ~/kfarm && pm2 logs --raw > logs.txt & exit"
 
 

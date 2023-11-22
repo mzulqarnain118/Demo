@@ -1,0 +1,4 @@
+Jenkins-Shared-Library(for reuseability of specific stages and we can use these stages in multibranch pipeline where some stages can be same so we can use reuseable code)
+Jenkins-Shared-Library-Setup => Mange Jenkins=>Sysytem=>Global Pipeline Libraries(give there repo of shared library)
+Connect-GITLAB-For-Auto-Triggering-Pipelines (install gitlab/github plugin => Manage Jenkins => System => find there gitlab or github and configure with API_TOKEN(SETTINGS => INTEGRATIONS=>JENKINS))
+FOR-MULTIPIELINE-AUTO-TRIGGER (JENKINS:Go in Configure of multi-pipeline=>Scan Multibranch Pipeline Triggers=>TRIGGER WITH HOOK ID,GITLAB:setting=>webhooks=>create-webhook=>JENKINS_URL/multibranch-webhook-trigger/invoke?token=Trigger token)

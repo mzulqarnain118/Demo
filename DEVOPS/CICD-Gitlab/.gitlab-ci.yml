@@ -1,13 +1,45 @@
+#!GITLAB-NODE-JS-PROJECT-CI/CD-ON-EC2-WITH-PM2
 stages:
+  - build
   - deploy
+
+variables:
+  EC2_IPADDRESS: $EC2_IPADDRESS
+  SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY
+
+before_script:
+  # Install necessary tools for SSH
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  # Start the SSH agent
+  - eval $(ssh-agent -s)
+  # Add the SSH private key to the agent
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  # Create the ~/.ssh directory if it doesn't exist
+  - mkdir -p ~/.ssh
+  # Set the correct permissions for the ~/.ssh directory
+  - chmod 700 ~/.ssh
+
+build:
+  stage: build
+  script:
+    # Install Node.js and npm for the project
+    - apt-get update -qy
+    - apt-get install -y nodejs npm
+    - npm install
 
 deploy:
   stage: deploy
   only:
-    - nodejs-branch-name  # Replace with your branch name
+    - nodejs
   script:
-    - ssh user@your-ec2-instance-ip 'bash -s' < deploy.sh
-  environment:
-    name: production  # Replace with your environment name
-  tags:
-    - your-runner-tag  # Replace with your runner tag
+    # Add the SSH key to the authorized_keys file
+    - ssh-add -L > ~/.ssh/authorized_keys
+    # SSH into the EC2 instance, pull the latest code, and update npm packages
+    - ssh -o StrictHostKeyChecking=no -o UpdateHostKeys=yes ubuntu@$EC2_IPADDRESS "cd ~/kfarm && git pull origin nodejs"
+    - ssh -o StrictHostKeyChecking=no -o UpdateHostKeys=yes ubuntu@$EC2_IPADDRESS "cd ~/kfarm && npm install"
+    # Restart the Node.js application using PM2
+    - ssh -o StrictHostKeyChecking=no -o UpdateHostKeys=yes ubuntu@$EC2_IPADDRESS "cd ~/kfarm && pm2 restart index"
+    # View the Node.js application logs using PM2 in the background and exit
+    - ssh -o StrictHostKeyChecking=no -o UpdateHostKeys=yes ubuntu@$EC2_IPADDRESS "cd ~/kfarm && pm2 logs --raw > logs.txt & exit"
+
+

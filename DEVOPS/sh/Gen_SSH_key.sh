@@ -10,9 +10,6 @@ ssh-keygen -t rsa -b 4096 -C "$EMAIL"
 # Prompt the user for a custom name for the new key
 read -p "Enter a custom name for the new key (e.g., my_key): " NEW_KEY_NAME
 
-# Rename the generated key with the custom name
-mv ~/.ssh/id_rsa ~/.ssh/"$NEW_KEY_NAME"
-
 # Start the SSH agent
 eval "$(ssh-agent -s)"
 

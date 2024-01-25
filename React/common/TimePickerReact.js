@@ -8,10 +8,10 @@ import { makeStyles } from '@material-ui/core/styles';
 
 export default function MuiTimePicker({label, value, onChange, ...props}) {
   
-  const useStyles = makeStyles(() => ({
-    container: {
+   const useStyles = makeStyles(() => ({
+    container: { 
       background: '#ffff',
-  },
+  }, 
   }));
   const classes = useStyles();
 

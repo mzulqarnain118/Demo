@@ -1,0 +1,51 @@
+name: Node.js CI/CD on EC2 with PM2
+
+on:
+  push:
+    branches:
+      - dev # Change this to your dev branch name
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.19.0'
+          
+      - name: Install pm2
+        run: npm install -g pm2@latest
+
+      - name: Add directory to PATH
+        run: echo "/path/to/.nvm/versions/node/v14.21.3/bin" >> $GITHUB_PATH
+
+      - name: Install yarn dependencies
+        run: yarn install --legacy-peer-deps
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    needs: build
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -t rsa -H 54.82.58.134 >> ~/.ssh/known_hosts
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@54.82.58.134 'bash -ic "cd ~/kamlink-backend && git pull origin dev"'
+          ssh -o StrictHostKeyChecking=no ubuntu@54.82.58.134 'bash -ic "cd ~/kamlink-backend && nvm install 16 && nvm use 16 && yarn install --legacy-peer-deps && npx sequelize-cli db:migrate"'
+          ssh -o StrictHostKeyChecking=no ubuntu@54.82.58.134 'echo "PATH: $PATH" && /home/ubuntu/.nvm/versions/node/v18.19.0/bin/pm2 restart index'
+
+

@@ -1,4 +1,45 @@
 #!/bin/bash
+BOLD='\033[1m'
+RESET='\033[0m'
+# Prompt the user for their email address
+read -p "Enter your email address: " EMAIL
+
+# Generate a new SSH key with the provided email address
+ssh-keygen -t rsa -b 4096 -C "$EMAIL"
+
+# Prompt the user for a custom name for the new key
+read -p "Enter a custom name for the new key (e.g., my_key): " NEW_KEY_NAME
+
+#! Start the SSH agent
+eval "$(ssh-agent -s)"
+
+# Add the new SSH key to the agent
+ssh-add ~/.ssh/"$NEW_KEY_NAME"
+
+# Prompt the user for the remote repository host (GitHub, GitLab, etc.)
+read -p "Enter the remote repository host (e.g., github.com, gitlab.com): " REMOTE_HOST
+
+# Add the public key to GitHub
+echo -e  "\033[1mAdd the following public key to your $REMOTE_HOST  account before moving forward:\033[0m"
+cat ~/.ssh/"$NEW_KEY_NAME.pub"
+
+
+# Prompt the user for Host and HostName
+read -p "Enter Host name for SSH config: " HOSTNAME
+
+# Add SSH configuration to the config file
+echo -e "\nHost $HOSTNAME" >> ~/.ssh/config
+echo "  HostName $REMOTE_HOST" >> ~/.ssh/config
+echo "  IdentityFile ~/.ssh/$NEW_KEY_NAME" >> ~/.ssh/config
+echo "" >> ~/.ssh/config
+
+# Verify the SSH configuration
+ssh -T "git@$REMOTE_HOST"
+
+echo "\033[1mSSH configuration completed for $REMOTE_HOST using the key $NEW_KEY_NAME.\033[0m"
+# Display a message for the user to clone a repository
+echo -e "\033[1mNow you can clone a repository from $REMOTE_HOST by replacing $REMOTE_HOST with $HOSTNAME eg. below\033[0m"
+echo -e "\033[1mgit clone git@$HOSTNAME:your_username/your_repository.git\033[0m"
 
 # Prompt the user for a domain or IP address
 read -p "Enter a domain or IP address (leave empty for localhost): " DOMAIN_OR_IP
@@ -11,39 +52,10 @@ fi
 # Prompt the user for the choice of app (Node.js or React)
 read -p "Choose the type of app you want to set up (node/react): " APP_TYPE
 
-# Define variables for app-specific settings
-if [ "$APP_TYPE" == "node" ]; then
-    # For Node.js app
-    read -p "Enter the Node.js app's port (default is 3000): " NODEJS_APP_PORT
-
-    # If the input is empty, use port 3000 as the default
-    if [ -z "$NODEJS_APP_PORT" ]; then
-        NODEJS_APP_PORT=3000
-    fi
-elif [ "$APP_TYPE" == "react" ]; then
-    # For React app
-    read -p "Enter the path to your React app's build directory (e.g., /path/to/build): " REACT_APP_DIR
-else
-    echo "Invalid app type. Please choose either 'node' or 'react'."
-    exit 1
-fi
-
-# Prompt the user for SSL choice (free or paid)
-read -p "Do you want to use paid SSL? (yes/no): " USE_PAID_SSL
-
-# Define the server block file based on the domain or IP address
-NGINX_CONF="/etc/nginx/sites-available/$DOMAIN_OR_IP"
-
-# Update the package manager
-sudo apt update
-
-# Install Nginx
-sudo apt install nginx -y
-
-# Install Git
+#! Install Git
 sudo apt install git -y
 
-# Install NVM (Node Version Manager)
+#! Install NVM (Node Version Manager)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 
 # Load NVM
@@ -54,101 +66,110 @@ export NVM_DIR="$HOME/.nvm"
 # Install Node.js (change the version to your desired version)
 nvm install node
 
-# Install PM2
-npm install pm2 -g
+    #! Prompt the user for the Git clone link
+    read -p "Enter the Git clone link for the Node.js project: " GIT_CLONE_LINK
 
-# Create a directory for the app (Node.js or React)
+    # Clone the Node.js project
+    git clone $GIT_CLONE_LINK
+    read -p "Enter the path to your app's source directory (e.g., /home/ubuntu/project-dir): " APP_SRC
+    cd $APP_SRC
+    read -p "Enter the Git Branch in which you wanna checkout (e.g., main/develop): " BRANCH
+    git fetch -a
+    git checkout $BRANCH
+  #! Prompt the user for the package manager (npm or yarn)
+    read -p "Enter the package manager (npm/yarn): " PACKAGE_MANAGER
+
+    # Install dependencies based on the chosen package manager
+    if [ "$PACKAGE_MANAGER" == "npm" ]; then
+        npm install
+    elif [ "$PACKAGE_MANAGER" == "yarn" ]; then
+       npm install yarn -g
+        yarn install
+    else
+        echo "Invalid package manager. Please choose either 'npm' or 'yarn'."
+        exit 1
+    fi
+# Define variables for app-specific settings
 if [ "$APP_TYPE" == "node" ]; then
     # For Node.js app
-    sudo mkdir -p "/var/www/$DOMAIN_OR_IP"
+    read -p "Enter the Node.js app's port (default is 3000): " NODEJS_APP_PORT
+
+    # If the input is empty, use port 3000 as the default
+    if [ -z "$NODEJS_APP_PORT" ]; then
+        NODEJS_APP_PORT=3000
+    fi
+
+    # Install PM2
+    npm install pm2 -g
+
+elif [ "$APP_TYPE" == "react" ]; then
+    # For React app
+    REACT_APP_DIR="/var/www/html"
+
+    # Build the React project
+    if [ "$PACKAGE_MANAGER" == "npm" ]; then
+        npm run build
+    elif [ "$PACKAGE_MANAGER" == "yarn" ]; then
+        yarn build
+    else
+        echo "Invalid package manager. Please choose either 'npm' or 'yarn'."
+        exit 1
+    fi
+
+      #! Prompt the user for the build folder (dist or build)
+    read -p "Enter the package manager (build/dist): " BUILD_FOLDER
+
+    # Copy the React build to /var/www/html
+    sudo cp -r ./BUILD_FOLDER/* $REACT_APP_DIR
+
+else
+    echo "Invalid app type. Please choose either 'node' or 'react'."
+    exit 1
+fi
+
+# Define the server block file based on the domain or IP address
+NGINX_CONF="/etc/nginx/sites-available/$DOMAIN_OR_IP"
+
+# Update the package manager
+sudo apt update
+
+# Install Nginx
+sudo apt install nginx -y
+
+#! Prompt the user for SSL configuration
+read -p "Do you want to use SSL for this domain? (yes/no): " USE_SSL
+
+# Check if SSL is requested
+if [ "$USE_SSL" == "yes" ]; then
+    sudo apt install certbot python3-certbot-nginx
+    # Generate SSL certificate
+    sudo certbot --nginx -d $DOMAIN_OR_IP
+fi
+
+# Create an Nginx server block configuration based on the app type
+if [ "$APP_TYPE" == "node" ]; then
+    # For Node.js app
+    NGINX_CONFIG="proxy_pass http://localhost:$NODEJS_APP_PORT;"
 else
     # For React app
-    sudo mkdir -p "$REACT_APP_DIR"
+    NGINX_CONFIG="root $REACT_APP_DIR;"
 fi
 
-# Copy the app's files to the specified directory
-# Assuming you have already prepared the app files
-# Customize this part to match your deployment process
-# Example: sudo cp -r /path/to/your/app/* "/var/www/$DOMAIN_OR_IP"
-# Uncomment the line above and replace the path accordingly.
-
-if [ "$USE_PAID_SSL" == "yes" ]; then
-    # Prompt the user for SSL certificate and key paths
-    read -p "Enter the path to your SSL certificate file (e.g., /path/to/certificate.crt): " SSL_CERTIFICATE_PATH
-    read -p "Enter the path to your SSL certificate key file (e.g., /path/to/privatekey.key): " SSL_KEY_PATH
-
-    # Create an Nginx server block configuration with paid SSL
-    sudo tee "$NGINX_CONF" > /dev/null <<EOF
+# Create the Nginx server block configuration
+sudo tee "$NGINX_CONF" > /dev/null <<EOF
 server {
     listen 80;
     server_name $DOMAIN_OR_IP;
 
     location / {
-        proxy_pass http://localhost:$NODEJS_APP_PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-    }
-
-    location /static/ {
-        alias /var/www/$DOMAIN_OR_IP/static/;
-    }
-
-    location /media/ {
-        alias /var/www/$DOMAIN_OR_IP/media/;
-    }
-
-    access_log /var/log/nginx/$DOMAIN_OR_IP-access.log;
-    error_log /var/log/nginx/$DOMAIN_OR_IP-error.log;
-
-    # SSL Configuration
-    ssl_certificate $SSL_CERTIFICATE_PATH;
-    ssl_certificate_key $SSL_KEY_PATH;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers 'TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384';
-    ssl_prefer_server_ciphers off;
-    ssl_session_timeout 1d;
-    ssl_session_tickets off;
-    ssl_stapling on;
-    ssl_stapling_verify on;
-
-    # Additional SSL Security Headers (optional)
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header X-Content-Type-Options nosniff;
-    add_header Referrer-Policy "strict-origin-when-cross-origin";
-}
-EOF
-else
-    # Create an Nginx server block configuration without SSL
-    sudo tee "$NGINX_CONF" > /dev/null <<EOF
-server {
-    listen 80;
-    server_name $DOMAIN_OR_IP;
-
-    location / {
-        proxy_pass http://localhost:$NODEJS_APP_PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-    }
-
-    location /static/ {
-        alias /var/www/$DOMAIN_OR_IP/static/;
-    }
-
-    location /media/ {
-        alias /var/www/$DOMAIN_OR_IP/media/;
+        $NGINX_CONFIG
+        index index.html;
     }
 
     access_log /var/log/nginx/$DOMAIN_OR_IP-access.log;
     error_log /var/log/nginx/$DOMAIN_OR_IP-error.log;
 }
 EOF
-fi
 
 # Enable the server block
 sudo ln -s "$NGINX_CONF" "/etc/nginx/sites-enabled/"
@@ -168,9 +189,11 @@ echo "To enable Nginx at boot, run: sudo systemctl enable nginx"
 # Clean up
 if [ "$APP_TYPE" == "node" ]; then
     # For Node.js app
-    echo "Node.js app files should be copied to: /var/www/$DOMAIN_OR_IP"
+    echo "Node.js app files should be cloned to: $HOME"
+    echo "PM2 is installed for managing the Node.js app."
 else
     # For React app
-    echo "React app files should be copied to: $REACT_APP_DIR"
+    echo "React build files are copied to: $REACT_APP_DIR"
 fi
+
 
